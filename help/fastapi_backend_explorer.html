@@ -1,0 +1,228 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{display:grid;grid-template-columns:220px minmax(0,1fr);gap:0;min-height:520px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.sidebar{border-right:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);padding:8px 0;overflow-y:auto}
+.folder-btn{display:flex;align-items:center;gap:8px;width:100%;padding:7px 14px;background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:12px;color:var(--color-text-secondary);text-align:left;border-radius:0;transition:background .1s}
+.folder-btn:hover{background:var(--color-background-primary)}
+.folder-btn.active{background:var(--color-background-primary);color:var(--color-text-primary);font-weight:500}
+.folder-btn .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.panel{padding:20px 24px;overflow-y:auto}
+.panel-title{font-size:15px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.panel-path{font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);margin-bottom:16px}
+.panel-desc{font-size:13px;color:var(--color-text-secondary);line-height:1.65;margin-bottom:18px}
+.rule{font-size:12px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px}
+.file-row{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);margin-bottom:6px}
+.file-name{font-family:var(--font-mono);font-size:12px;color:var(--color-text-primary);font-weight:500;white-space:nowrap;min-width:160px}
+.file-desc{font-size:12px;color:var(--color-text-secondary);line-height:1.5}
+.tag{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;margin-right:4px;margin-bottom:4px;font-family:var(--font-sans)}
+.tag.rule-t{background:#E1F5EE;color:#085041}
+.tag.warn{background:#FAEEDA;color:#633806}
+.tag.info{background:#E6F1FB;color:#0C447C}
+.tip{font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border-left:2px solid var(--color-border-secondary);padding:8px 12px;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;margin-top:14px;line-height:1.55}
+.tip code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-primary);padding:1px 4px;border-radius:3px;border:0.5px solid var(--color-border-tertiary)}
+</style>
+
+<div class="wrap">
+<div class="sidebar">
+<div class="folder-btn active" onclick="show('main')" id="btn-main"><span class="dot" style="background:#378ADD"></span>main.py</div>
+<div class="folder-btn" onclick="show('api')" id="btn-api"><span class="dot" style="background:#1D9E75"></span>api/v1/</div>
+<div class="folder-btn" onclick="show('core')" id="btn-core"><span class="dot" style="background:#D85A30"></span>core/</div>
+<div class="folder-btn" onclick="show('db')" id="btn-db"><span class="dot" style="background:#7F77DD"></span>db/</div>
+<div class="folder-btn" onclick="show('models')" id="btn-models"><span class="dot" style="background:#7F77DD"></span>models/</div>
+<div class="folder-btn" onclick="show('schemas')" id="btn-schemas"><span class="dot" style="background:#EF9F27"></span>schemas/</div>
+<div class="folder-btn" onclick="show('services')" id="btn-services"><span class="dot" style="background:#1D9E75"></span>services/</div>
+<div class="folder-btn" onclick="show('repos')" id="btn-repos"><span class="dot" style="background:#7F77DD"></span>repositories/</div>
+<div class="folder-btn" onclick="show('tasks')" id="btn-tasks"><span class="dot" style="background:#D85A30"></span>tasks/</div>
+<div class="folder-btn" onclick="show('cache')" id="btn-cache"><span class="dot" style="background:#EF9F27"></span>cache/</div>
+<div class="folder-btn" onclick="show('middleware')" id="btn-middleware"><span class="dot" style="background:#888780"></span>middleware/</div>
+<div class="folder-btn" onclick="show('tests')" id="btn-tests"><span class="dot" style="background:#639922"></span>tests/</div>
+<div class="folder-btn" onclick="show('alembic')" id="btn-alembic"><span class="dot" style="background:#888780"></span>alembic/</div>
+</div>
+
+<div class="panel" id="panel"></div>
+</div>
+
+<script>
+const content = {
+main:{
+  title:'main.py',
+  path:'backend/app/main.py',
+  desc:'The application entry point. Creates the FastAPI() instance, registers all routers, attaches middleware, and defines startup/shutdown lifecycle events. This is the only file that imports everything together — keep it thin.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'FastAPI() init',desc:'Create the app object here with title, version, and docs URL. Disable /docs in production via config flag.'},
+    {name:'Router includes',desc:'app.include_router(auth.router, prefix="/api/v1") — one line per router. No business logic here.'},
+    {name:'Middleware registration',desc:'app.add_middleware(CORSMiddleware, ...) and any custom middleware in order.'},
+    {name:'Startup / shutdown events',desc:'@app.on_event("startup") to connect Redis, warm caches, run health checks. @app.on_event("shutdown") to close DB connections cleanly.'},
+    {name:'Global exception handlers',desc:'@app.exception_handler(HTTPException) to return consistent JSON error shapes.'},
+  ],
+  tip:'Never put route handlers or business logic in main.py. If it grows past ~60 lines, you are doing too much here.'
+},
+api:{
+  title:'api/v1/',
+  path:'backend/app/api/v1/',
+  desc:'Route handlers only — one file per domain resource. Each file creates an APIRouter and defines HTTP endpoints. Routers call services, never the database directly. Versioned under v1/ so you can add v2/ without breaking existing clients.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'auth.py',desc:'POST /login — accepts email+password, returns JWT tokens. POST /refresh — exchanges refresh token for new access token. POST /logout — invalidates refresh token in Redis.'},
+    {name:'users.py',desc:'GET /users/me — returns current user profile. PUT /users/me — update profile. GET /users/{id} — admin only. DELETE /users/{id} — soft delete.'},
+    {name:'items.py',desc:'Full CRUD for your main resource. GET /items (paginated), POST /items, GET /items/{id}, PUT /items/{id}, DELETE /items/{id}.'},
+    {name:'health.py',desc:'GET /health — returns 200 OK with DB + Redis status. Used by Kubernetes liveness and readiness probes.'},
+  ],
+  tip:'Each endpoint should be 5–15 lines max. If it is longer, the logic belongs in services/. Routers are just the HTTP interface — they validate input (Pydantic does this automatically) and call the right service method.'
+},
+core:{
+  title:'core/',
+  path:'backend/app/core/',
+  desc:'App-wide shared concerns that every other module depends on. Think of this as the backbone — config, security, dependency injection, and error handling all live here. No business logic, no DB queries.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'config.py',desc:'Pydantic BaseSettings class. Reads all env vars (DATABASE_URL, SECRET_KEY, REDIS_URL etc.) from .env file. Single source of truth — import settings from here everywhere, never use os.environ directly.'},
+    {name:'security.py',desc:'Two responsibilities only: (1) JWT — create_access_token(), create_refresh_token(), verify_token(). (2) Password — hash_password() using bcrypt, verify_password(). Nothing else lives here.'},
+    {name:'dependencies.py',desc:'FastAPI Depends() functions. get_db() yields an async DB session. get_current_user() decodes JWT and returns the User object. get_redis() returns Redis client. These are injected into route handlers.'},
+    {name:'exceptions.py',desc:'Custom exception classes (UserNotFoundError, InvalidCredentialsError) and their HTTP exception handlers. Ensures every error returns the same JSON shape: {detail, code, timestamp}.'},
+  ],
+  tip:'security.py should be the ONLY place that touches JWT or bcrypt. If you find yourself importing jose or passlib anywhere else, move that code here.'
+},
+db:{
+  title:'db/',
+  path:'backend/app/db/',
+  desc:'Database connection layer. Defines the SQLAlchemy engine, async session factory, and the DeclarativeBase that all models inherit from. Nothing here knows about your business domain.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'base.py',desc:'from sqlalchemy.orm import DeclarativeBase — defines Base class. All ORM models import and inherit from this Base. Also imports all models so Alembic can detect them for migrations.'},
+    {name:'session.py',desc:'Creates AsyncEngine from DATABASE_URL. Defines AsyncSessionLocal factory. get_db() dependency yields a session and handles commit/rollback/close in a try/finally block.'},
+  ],
+  tip:'Use two connection strings: DATABASE_URL for writes (primary), DATABASE_READ_URL for reads (replica). Route SELECT queries through the read engine to offload the primary.'
+},
+models:{
+  title:'models/',
+  path:'backend/app/models/',
+  desc:'SQLAlchemy ORM table definitions. Each file defines one or more Python classes that map directly to PostgreSQL tables. This is your database schema in code. Column definitions, relationships, and constraints live here.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'user.py',desc:'class User(Base): id (UUID PK), email (unique), hashed_password, is_active, is_admin, created_at, updated_at, deleted_at. The deleted_at column enables soft deletes.'},
+    {name:'item.py',desc:'class Item(Base): id, user_id (FK → users.id), title, description, is_published, created_at, updated_at. Add relationship(User, back_populates="items").'},
+    {name:'mixins.py',desc:'TimestampMixin adds created_at + updated_at with server_default=func.now(). SoftDeleteMixin adds deleted_at. Inherit these in every model to keep columns consistent.'},
+  ],
+  tip:'Never put business logic in models. No methods that call the DB, no validation beyond column constraints. Models are pure data structure definitions.'
+},
+schemas:{
+  title:'schemas/',
+  path:'backend/app/schemas/',
+  desc:'Pydantic models for request validation and response serialization. Completely separate from SQLAlchemy models. The schema layer is what FastAPI uses to validate incoming JSON and shape outgoing JSON — your ORM models never leave the service layer.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'user.py',desc:'UserCreate (email + password — for registration). UserRead (id, email, created_at — returned in responses, NO password). UserUpdate (optional fields only). UserInDB (includes hashed_password — internal use only).'},
+    {name:'token.py',desc:'TokenResponse (access_token, refresh_token, token_type). TokenPayload (sub, exp, iat — the JWT claim structure).'},
+    {name:'item.py',desc:'ItemCreate, ItemRead, ItemUpdate, ItemList (with total + pagination metadata).'},
+    {name:'common.py',desc:'PaginatedResponse[T] generic schema. MessageResponse for simple {message: "ok"} replies. ErrorResponse for consistent error shape.'},
+  ],
+  tip:'Use model_config = ConfigDict(from_attributes=True) in every Read schema so .model_validate(orm_object) works seamlessly without manual mapping.'
+},
+services:{
+  title:'services/',
+  path:'backend/app/services/',
+  desc:'Business logic layer — the brain of your application. Services are called by routers and call repositories. They contain the real application rules: what happens when a user registers, how tokens are issued, what validation beyond schema-level is needed.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'auth_service.py',desc:'authenticate_user(email, password) — fetches user, verifies bcrypt hash, raises InvalidCredentials if wrong. issue_tokens(user_id) — calls security.py to create JWT pair. revoke_refresh_token(token) — deletes from Redis.'},
+    {name:'user_service.py',desc:'create_user(data) — checks email uniqueness, hashes password, calls user_repo.create(). update_user(id, data) — partial update with PATCH semantics. delete_user(id) — sets deleted_at timestamp.'},
+    {name:'item_service.py',desc:'Business rules around items — e.g. a user can only have 100 active items, published items cannot be deleted. Services enforce these rules before calling the repository.'},
+    {name:'email_service.py',desc:'send_email(to, subject, body) — wraps SMTP / SendGrid client. Called directly for critical emails (password reset). For non-critical (welcome email), call email_tasks.send_welcome_email.delay() instead.'},
+  ],
+  tip:'Services must NOT import from api/ or know anything about HTTP. They should be testable without a running web server. If you find yourself using Request or Response objects here, the logic belongs in the router.'
+},
+repos:{
+  title:'repositories/',
+  path:'backend/app/repositories/',
+  desc:'Database query layer — the only place that writes SQL (via SQLAlchemy). Repositories are called by services, never by routers directly. This separation means you can swap PostgreSQL for another DB without touching business logic.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'base_repo.py',desc:'Generic async CRUD base: get(id), get_all(skip, limit), create(obj), update(id, data), delete(id). All concrete repos inherit this and get these methods for free.'},
+    {name:'user_repo.py',desc:'get_by_email(email) — SELECT WHERE email=? AND deleted_at IS NULL. get_active_users(skip, limit). All queries use the read replica session for SELECTs automatically.'},
+    {name:'item_repo.py',desc:'list_by_user(user_id, skip, limit) — paginated query with ORDER BY created_at DESC. search(query, filters) — full-text search using PostgreSQL tsvector.'},
+  ],
+  tip:'Every SELECT in repos should hit the read replica session. Every INSERT/UPDATE/DELETE should hit the primary session. Pass the correct session from dependencies.py to enforce this.'
+},
+tasks:{
+  title:'tasks/',
+  path:'backend/app/tasks/',
+  desc:'Celery async task definitions. When a FastAPI endpoint needs to trigger background work (send email, push notification, generate report), it calls task.delay() and returns immediately. The Celery worker picks up the task from RabbitMQ and executes it separately.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'celery_app.py',desc:'Celery("app", broker=settings.RABBITMQ_URL, backend=settings.REDIS_URL). Configure task serializer, result expiry, and retry policy here. This is imported by both the FastAPI app and the worker container.'},
+    {name:'email_tasks.py',desc:'@celery_app.task(bind=True, max_retries=3) def send_welcome_email(self, user_id). Fetches user from DB, calls email_service. On failure, self.retry(countdown=60) for exponential backoff.'},
+    {name:'notification_tasks.py',desc:'send_push_notification(user_id, title, body) — calls FCM or APNs. send_sms(phone, message) — calls Twilio. Tasks are idempotent — safe to retry on failure.'},
+  ],
+  tip:'Always make tasks idempotent — running the same task twice should have the same effect as running it once. Store a task_id in Redis to detect and skip duplicate executions.'
+},
+cache:{
+  title:'cache/',
+  path:'backend/app/cache/',
+  desc:'Redis client and caching utilities. Used to cache hot database queries, store refresh tokens, and rate-limit API endpoints. The cache layer sits between services and repositories — check cache first, fall back to DB on miss.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'redis_client.py',desc:'Creates aioredis async client from REDIS_URL. Provides get_redis() function used as a FastAPI dependency. Handles connection pooling so each request reuses an existing connection.'},
+    {name:'cache_utils.py',desc:'get_cached(key) → returns parsed JSON or None. set_cached(key, value, ttl=300) → serializes to JSON and sets with expiry. invalidate(key) and invalidate_pattern("user:*") for cache busting on writes.'},
+  ],
+  tip:'Cache keys should be namespaced: "user:{id}:profile", "items:{user_id}:list:page:{n}". This makes pattern-based invalidation easy and avoids collisions between different data types.'
+},
+middleware:{
+  title:'middleware/',
+  path:'backend/app/middleware/',
+  desc:'Custom ASGI middleware that wraps every request/response cycle. Middleware runs before route handlers — use it for cross-cutting concerns that apply to every request regardless of which endpoint is called.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'logging.py',desc:'Logs method, path, status code, and response time for every request in structured JSON format. Adds a request_id UUID to each request so logs can be correlated across services in ELK/Loki.'},
+    {name:'cors.py',desc:'Configures CORSMiddleware with allowed origins from settings. In dev: ["*"]. In prod: ["https://yourdomain.com"]. Never hardcode origins — always read from config.'},
+  ],
+  tip:'Keep middleware thin — it runs on every single request, so even a 1ms overhead at 10M daily requests adds up. Heavy logic belongs in services or dependencies.'
+},
+tests:{
+  title:'tests/',
+  path:'backend/tests/',
+  desc:'pytest test suite. Mirrors the app/ folder structure so tests are easy to find. Uses an in-memory SQLite DB or a dedicated test PostgreSQL DB spun up by docker-compose. Never tests against production data.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'conftest.py',desc:'Defines shared pytest fixtures: test_app (TestClient), test_db (fresh DB session per test), test_user (a pre-created User object), auth_headers (Bearer token for authenticated requests).'},
+    {name:'api/test_auth.py',desc:'Tests for login success, wrong password (401), expired token (401), refresh flow, logout. Each test is independent — no shared state between tests.'},
+    {name:'api/test_users.py',desc:'Tests for get profile (200), update profile (200), unauthorized access (401), admin-only endpoint (403 for regular users).'},
+    {name:'services/test_auth_service.py',desc:'Unit tests for authenticate_user() and issue_tokens() called directly — no HTTP involved. Fast and isolated.'},
+  ],
+  tip:'Aim for: integration tests in api/ (test the full HTTP stack), unit tests in services/ (test logic in isolation). Target 80%+ coverage on services/ — that is where bugs live.'
+},
+alembic:{
+  title:'alembic/',
+  path:'backend/alembic/',
+  desc:'Database migration management. Alembic tracks every schema change as a versioned Python script. When you add a column, create a table, or add an index, you generate a migration file — never alter the DB manually in production.',
+  rules:[
+    {tag:'rule-t',label:'Rule'},
+    {name:'env.py',desc:'Alembic runtime config. Reads DATABASE_URL from settings, imports Base.metadata so Alembic can compare current models against the DB to auto-generate migrations.'},
+    {name:'versions/0001_create_users.py',desc:'Auto-generated by: alembic revision --autogenerate -m "create users". Contains upgrade() and downgrade() functions. Review before applying — autogenerate is 90% correct, not 100%.'},
+    {name:'Running migrations',desc:'"alembic upgrade head" applies all pending migrations. "alembic downgrade -1" rolls back one step. Run in CI before deploying new pods.'},
+  ],
+  tip:'Never edit a migration file that has already been applied to production. If you need to fix a mistake, generate a new migration that corrects it. Alembic tracks which migrations have run in the alembic_version table.'
+}
+};
+
+function show(key){
+  document.querySelectorAll('.folder-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+key).classList.add('active');
+  const d=content[key];
+  const files=d.rules.map(r=>`
+    <div class="file-row">
+      <span class="file-name">${r.name}</span>
+      <span class="file-desc">${r.desc}</span>
+    </div>`).join('');
+  document.getElementById('panel').innerHTML=`
+    <div class="panel-title">${d.title}</div>
+    <div class="panel-path">backend/app/${d.path.replace('backend/app/','').replace('backend/','')}  </div>
+    <div class="panel-desc">${d.desc}</div>
+    <div class="rule">Files &amp; what to put inside</div>
+    ${files}
+    <div class="tip">${d.tip}</div>
+  `;
+}
+show('main');
+</script>

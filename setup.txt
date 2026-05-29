@@ -1,0 +1,8 @@
+   # Install all the python library
+   pip install -r requirements.txt
+
+   #Open Swagger document
+   http://backendSever_ip:port/docs
+
+#locally how to download postgres and run that
+docker run -d --name baps_postgres-db -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=Admin@1234 -e POSTGRES_DB=baps_parivar_db -p 5432:5432 -v postgres_data:/var/lib/postgresql postgres:15
